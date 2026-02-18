@@ -110,25 +110,23 @@ class AppRouter {
     final loc = state.matchedLocation;
     final user = SupabaseClientProvider.currentUser;
     final isLoggedIn = user != null;
-    final isEmailConfirmed = user?.emailConfirmedAt != null;
+    
+    // emailConfirmedAt may lag — also check the session's user metadata
+    final isEmailConfirmed = user?.emailConfirmedAt != null ||
+        user?.userMetadata?['email_verified'] == true;
 
     final isOnSplash = loc == AppRoutes.splash;
     final isOnAuth = loc == AppRoutes.login ||
         loc == AppRoutes.register ||
         loc == AppRoutes.emailVerification;
 
-    // Let splash handle its own logic
     if (isOnSplash) return null;
-
-    // Not logged in → send to login
     if (!isLoggedIn && !isOnAuth) return AppRoutes.login;
 
-    // Logged in but email not confirmed → hold on verification screen
     if (isLoggedIn && !isEmailConfirmed && loc != AppRoutes.emailVerification) {
       return '${AppRoutes.emailVerification}?email=${Uri.encodeComponent(user.email ?? '')}';
     }
 
-    // Logged in & confirmed → push away from auth screens
     if (isLoggedIn && isEmailConfirmed && isOnAuth) {
       return AppRoutes.home;
     }

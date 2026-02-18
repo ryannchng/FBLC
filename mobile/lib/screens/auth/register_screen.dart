@@ -107,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           '${AppRoutes.emailVerification}?email=${Uri.encodeComponent(_emailController.text.trim())}',
         );
       }
-    } on AuthException catch (e) {
+    } on AppAuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);

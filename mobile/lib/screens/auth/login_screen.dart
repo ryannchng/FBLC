@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen>
         password: _passwordController.text,
       );
       if (mounted) context.go(AppRoutes.home);
-    } on AuthException catch (e) {
+    } on AppAuthException catch (e) {  // ← AppAuthException, not AuthException
       setState(() => _errorMessage = e.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -95,8 +95,7 @@ class _LoginScreenState extends State<LoginScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-                "Enter your email and we'll send a reset link."),
+            const Text("Enter your email and we'll send a reset link."),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
@@ -133,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           );
         }
-      } on AuthException catch (e) {
+      } on AppAuthException catch (e) {  // ← AppAuthException
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -250,7 +249,6 @@ class _LoginScreenState extends State<LoginScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Error banner
           if (_errorMessage != null) ...[
             _ErrorBanner(message: _errorMessage!),
             const SizedBox(height: 20),

@@ -1,43 +1,49 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Stores the Supabase session in the OS keychain / EncryptedSharedPreferences
-/// instead of plain SharedPreferences.
+/// Stores the Supabase session token in the OS secure store:
+///   • Android — EncryptedSharedPreferences (AES-256)
+///   • iOS/macOS — Keychain (first_unlock accessibility)
 ///
-/// - Android: EncryptedSharedPreferences (AES-256)
-/// - iOS/macOS: Keychain (first-unlock accessibility)
+/// Pass an instance to [Supabase.initialize] via the [localStorage] parameter.
 class SecureSessionStorage extends LocalStorage {
-  static const _key = 'supabase_session';
+  static const _sessionKey = 'supabase_session';
 
+  // One shared instance — avoids recreating the storage object on every call.
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock,
     ),
   );
 
+  /// Called once by Supabase on startup. Nothing to initialise here.
   @override
-  Future<void> initialize() async {
-    // Nothing to set up — FlutterSecureStorage is ready immediately.
+  Future<void> initialize() async {}
+
+  /// Returns true if a persisted session exists in secure storage.
+  @override
+  Future<bool> hasAccessToken() {
+    return _storage.containsKey(key: _sessionKey);
   }
 
+  /// Returns the raw session string, or null if none is stored.
   @override
-  Future<bool> hasAccessToken() async {
-    return _storage.containsKey(key: _key);
+  Future<String?> accessToken() {
+    return _storage.read(key: _sessionKey);
   }
 
+  /// Writes [persistSessionString] to secure storage.
   @override
-  Future<String?> accessToken() async {
-    return _storage.read(key: _key);
+  Future<void> persistSession(String persistSessionString) {
+    return _storage.write(key: _sessionKey, value: persistSessionString);
   }
 
+  /// Deletes the stored session (called on sign-out).
   @override
-  Future<void> removePersistedSession() async {
-    await _storage.delete(key: _key);
-  }
-
-  @override
-  Future<void> persistSession(String persistSessionString) async {
-    await _storage.write(key: _key, value: persistSessionString);
+  Future<void> removePersistedSession() {
+    return _storage.delete(key: _sessionKey);
   }
 }

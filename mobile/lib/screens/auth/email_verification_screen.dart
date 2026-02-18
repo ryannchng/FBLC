@@ -49,8 +49,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       Future.delayed(const Duration(seconds: 60), () {
         if (mounted) setState(() => _resentRecently = false);
       });
-    } on AuthException catch (e) {
-      setState(() {
+    } on AppAuthException catch (e) {      setState(() {
         _feedbackMessage = e.message;
         _feedbackIsError = true;
       });

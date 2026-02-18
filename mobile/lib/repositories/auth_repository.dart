@@ -1,10 +1,13 @@
-import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:developer' as dev;
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../core/supabase_client.dart';
 
 /// Thrown for all auth-related errors with a user-friendly message.
-class AuthException implements Exception {
-  const AuthException(this.message);
+///
+/// Named [AppAuthException] to avoid colliding with Supabase's own
+/// [sb.AuthException].
+class AppAuthException implements Exception {
+  const AppAuthException(this.message);
   final String message;
   @override
   String toString() => message;
@@ -13,7 +16,7 @@ class AuthException implements Exception {
 class AuthRepository {
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
-  Future<AuthResponse> signInWithEmail({
+  Future<sb.AuthResponse> signInWithEmail({
     required String email,
     required String password,
   }) async {
@@ -23,30 +26,29 @@ class AuthRepository {
         password: password,
       );
       if (response.user == null) {
-        throw const AuthException('Sign in failed. Please try again.');
+        throw const AppAuthException('Sign in failed. Please try again.');
       }
       return response;
-    } on AuthApiException catch (e) {
-      throw AuthException(_mapAuthError(e.message));
-    } catch (e) {
-      if (e is AuthException) rethrow;
-      throw const AuthException(
-          'An unexpected error occurred. Please try again.');
+    } on sb.AuthException catch (e, st) {
+      dev.log('Supabase AuthException: ${e.message}', error: e, stackTrace: st);
+      throw AppAuthException(_mapAuthError(e.message));
+    } catch (e, st) {
+      if (e is AppAuthException) rethrow;
+      dev.log('Unexpected sign-in error: $e', error: e, stackTrace: st);
+      throw AppAuthException(
+          'An unexpected error occurred ($e). Please try again.');
     }
   }
 
   // ─── Register ─────────────────────────────────────────────────────────────
 
-  /// [captchaToken] — pass the token from Cloudflare Turnstile / hCaptcha.
-  /// Supabase will verify it server-side if CAPTCHA is enabled in your project.
-  Future<AuthResponse> registerWithEmail({
+  Future<sb.AuthResponse> registerWithEmail({
     required String email,
     required String password,
     required String username,
     String? captchaToken,
   }) async {
     try {
-      // 1. Ensure username is unique before creating the auth user.
       final existing = await SupabaseClientProvider.client
           .from('users')
           .select('id')
@@ -54,43 +56,39 @@ class AuthRepository {
           .maybeSingle();
 
       if (existing != null) {
-        throw const AuthException('That username is already taken.');
+        throw const AppAuthException('That username is already taken.');
       }
 
-      // 2. Create the auth user. Supabase will send a verification email.
       final response = await SupabaseClientProvider.auth.signUp(
         email: email.trim(),
         password: password,
-        // Pass CAPTCHA token if you have Turnstile / hCaptcha enabled
-        // in Supabase Dashboard → Auth → Settings → Enable Captcha protection.
         captchaToken: captchaToken,
-        data: {
-          'username': username.trim(),   // stored in raw_user_meta_data
-        },
+        data: {'username': username.trim()},
+        emailRedirectTo: 'com.example.mobile://login-callback',
       );
 
       if (response.user == null) {
-        throw const AuthException('Registration failed. Please try again.');
+        throw const AppAuthException('Registration failed. Please try again.');
       }
 
-      // 3. Create the public profile row. Uses a DB trigger alternatively.
-      //    Wrapping in try/catch so a DB hiccup doesn't orphan the auth user.
       try {
         await SupabaseClientProvider.client.from('users').upsert({
           'id': response.user!.id,
           'username': username.trim(),
         });
-      } catch (_) {
-        // Non-fatal: the trigger or a later sync can handle this.
+      } catch (e) {
+        dev.log('Non-fatal: could not upsert user profile row: $e');
       }
 
       return response;
-    } on AuthApiException catch (e) {
-      throw AuthException(_mapAuthError(e.message));
-    } catch (e) {
-      if (e is AuthException) rethrow;
-      throw const AuthException(
-          'An unexpected error occurred. Please try again.');
+    } on sb.AuthException catch (e, st) {
+      dev.log('Supabase AuthException: ${e.message}', error: e, stackTrace: st);
+      throw AppAuthException(_mapAuthError(e.message));
+    } catch (e, st) {
+      if (e is AppAuthException) rethrow;
+      dev.log('Unexpected register error: $e', error: e, stackTrace: st);
+      throw AppAuthException(
+          'An unexpected error occurred ($e). Please try again.');
     }
   }
 
@@ -99,10 +97,12 @@ class AuthRepository {
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await SupabaseClientProvider.auth.resetPasswordForEmail(email.trim());
-    } on AuthApiException catch (e) {
-      throw AuthException(_mapAuthError(e.message));
-    } catch (_) {
-      throw const AuthException(
+    } on sb.AuthException catch (e, st) {
+      dev.log('Supabase AuthException: ${e.message}', error: e, stackTrace: st);
+      throw AppAuthException(_mapAuthError(e.message));
+    } catch (e, st) {
+      dev.log('Unexpected password reset error: $e', error: e, stackTrace: st);
+      throw const AppAuthException(
           'Could not send reset email. Please try again.');
     }
   }
@@ -112,13 +112,16 @@ class AuthRepository {
   Future<void> resendVerificationEmail(String email) async {
     try {
       await SupabaseClientProvider.auth.resend(
-        type: OtpType.signup,
+        type: sb.OtpType.signup,
         email: email.trim(),
+        emailRedirectTo: 'com.example.mobile://login-callback',
       );
-    } on AuthApiException catch (e) {
-      throw AuthException(_mapAuthError(e.message));
-    } catch (_) {
-      throw const AuthException(
+    } on sb.AuthException catch (e, st) {
+      dev.log('Supabase AuthException: ${e.message}', error: e, stackTrace: st);
+      throw AppAuthException(_mapAuthError(e.message));
+    } catch (e, st) {
+      dev.log('Unexpected resend error: $e', error: e, stackTrace: st);
+      throw const AppAuthException(
           'Could not resend verification email. Please try again.');
     }
   }
