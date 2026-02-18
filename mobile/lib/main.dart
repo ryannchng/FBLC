@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:mobile/app.dart';
 import 'package:mobile/core/constants.dart';
+import 'package:mobile/core/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
