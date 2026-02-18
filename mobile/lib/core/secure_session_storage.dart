@@ -10,7 +10,7 @@ class SecureSessionStorage extends LocalStorage {
   static const _key = 'supabase_session';
 
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock,
     ),

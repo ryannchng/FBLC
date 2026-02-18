@@ -201,7 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           'Discover and review local businesses',
           style: TextStyle(
             fontSize: 15,
-            color: colorScheme.onSurface.withOpacity(0.55),
+            color: colorScheme.onSurface.withAlpha(140),
           ),
         ),
       ],
@@ -319,7 +319,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             'By creating an account you agree to our Terms of Service and Privacy Policy.',
             style: TextStyle(
               fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
             ),
             textAlign: TextAlign.center,
           ),
@@ -356,7 +356,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         Text(
           'Already have an account? ',
           style: TextStyle(
-            color: colorScheme.onSurface.withOpacity(0.6),
+            color: colorScheme.onSurface.withAlpha(153),
             fontSize: 14,
           ),
         ),
