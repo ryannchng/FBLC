@@ -4,6 +4,7 @@ import 'package:mobile/core/services/auth_state_notifier.dart';
 import 'package:mobile/screens/auth/email_verification_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
+import 'package:mobile/screens/home/home_screen.dart';
 import 'supabase_client.dart';
 
 // ---------------------------------------------------------------------------
@@ -69,7 +70,7 @@ class AppRouter {
           GoRoute(
             path: AppRoutes.home,
             builder: (context, state) =>
-                const _PlaceholderScreen(label: 'Home'),
+                const HomeScreen(),
           ),
           GoRoute(
             path: AppRoutes.businessList,
