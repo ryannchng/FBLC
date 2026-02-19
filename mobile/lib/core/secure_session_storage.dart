@@ -11,9 +11,7 @@ class SecureSessionStorage extends LocalStorage {
 
   // One shared instance — avoids recreating the storage object on every call.
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
+    aOptions: AndroidOptions(),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock,
     ),

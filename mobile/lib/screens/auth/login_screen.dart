@@ -236,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen>
           'Sign in to discover local businesses',
           style: TextStyle(
             fontSize: 15,
-            color: colorScheme.onSurface.withOpacity(0.55),
+            color: colorScheme.onSurface.withAlpha(140),
           ),
         ),
       ],
@@ -335,18 +335,18 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildDivider(ColorScheme colorScheme) {
     return Row(
       children: [
-        Expanded(child: Divider(color: colorScheme.outline.withOpacity(0.4))),
+        Expanded(child: Divider(color: colorScheme.outline.withAlpha(102))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             "Don't have an account?",
             style: TextStyle(
               fontSize: 13,
-              color: colorScheme.onSurface.withOpacity(0.5),
+              color: colorScheme.onSurface.withAlpha(128),
             ),
           ),
         ),
-        Expanded(child: Divider(color: colorScheme.outline.withOpacity(0.4))),
+        Expanded(child: Divider(color: colorScheme.outline.withAlpha(102))),
       ],
     );
   }

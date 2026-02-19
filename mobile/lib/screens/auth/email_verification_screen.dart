@@ -113,7 +113,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
-                      color: colorScheme.onSurface.withOpacity(0.6),
+                      color: colorScheme.onSurface.withAlpha(153),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -132,7 +132,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color: colorScheme.onSurface.withOpacity(0.55),
+                      color: colorScheme.onSurface.withAlpha(140),
                       height: 1.5,
                     ),
                   ),
