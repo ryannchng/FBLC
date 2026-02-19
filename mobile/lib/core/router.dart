@@ -10,7 +10,6 @@ import 'package:mobile/screens/home/home_screen.dart';
 import 'package:mobile/screens/owner/owner_dashboard_screen.dart';
 import 'package:mobile/screens/owner/owner_business_detail_screen.dart';
 import 'package:mobile/screens/owner/owner_business_form_screen.dart';
-import 'package:mobile/screens/profile/profile_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_client.dart';
 
@@ -132,7 +131,7 @@ class AppRouter {
           GoRoute(
             path: AppRoutes.profile,
             builder: (context, state) =>
-                const ProfileScreen(),
+                const _PlaceholderScreen(label: 'Profile'),
           ),
         ],
       ),
@@ -160,6 +159,9 @@ class AppRouter {
     final isEmailConfirmed = user?.emailConfirmedAt != null ||
         user?.userMetadata?['email_verified'] == true;
 
+    // Anonymous users have no email to verify — treat them as confirmed.
+    final isAnonymous = user?.isAnonymous ?? false;
+
     final isOnSplash = loc == AppRoutes.splash;
     final isOnAuth = loc == AppRoutes.login ||
         loc == AppRoutes.register ||
@@ -172,15 +174,17 @@ class AppRouter {
     if (!isLoggedIn && !isOnAuth) return AppRoutes.login;
 
     // Logged in but email not confirmed → send to verification screen.
+    // Anonymous sessions bypass this check — they have no email to confirm.
     if (isLoggedIn &&
+        !isAnonymous &&
         !isEmailConfirmed &&
         loc != AppRoutes.emailVerification) {
       return '${AppRoutes.emailVerification}'
           '?email=${Uri.encodeComponent(user.email ?? '')}';
     }
 
-    // Logged in and confirmed → don't linger on auth screens.
-    if (isLoggedIn && isEmailConfirmed && isOnAuth) {
+    // Logged in and confirmed (or anonymous) → don't linger on auth screens.
+    if (isLoggedIn && (isEmailConfirmed || isAnonymous) && isOnAuth) {
       return AppRoutes.home;
     }
 
@@ -272,6 +276,8 @@ class _SplashScreenState extends State<_SplashScreen> {
     final user = SupabaseClientProvider.currentUser;
     if (user == null) {
       context.go(AppRoutes.login);
+    } else if (user.isAnonymous) {
+      context.go(AppRoutes.home);
     } else if (user.emailConfirmedAt == null) {
       context.go(
         '${AppRoutes.emailVerification}'
