@@ -6,6 +6,7 @@ import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
 import 'package:mobile/screens/auth/reset_password_screen.dart';
 import 'package:mobile/screens/home/home_screen.dart';
+import 'package:mobile/screens/onboarding/onboarding_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_client.dart';
 
@@ -18,6 +19,7 @@ abstract class AppRoutes {
   static const register = '/register';
   static const emailVerification = '/verify-email';
   static const resetPassword = '/reset-password';
+  static const onboarding = '/onboarding';
   static const home = '/home';
   static const businessList = '/businesses';
   static const businessDetail = '/businesses/:id';
@@ -69,6 +71,12 @@ class AppRouter {
         builder: (context, state) => const ResetPasswordScreen(),
       ),
 
+      // ── Onboarding ────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+
       // ── Main app (bottom nav shell) ───────────────────────────────────────
       ShellRoute(
         builder: (context, state, child) => _AppShell(child: child),
@@ -118,22 +126,25 @@ class AppRouter {
     final isLoggedIn = user != null;
 
     // When the user clicks a password reset link, Supabase fires
-    // passwordRecovery before the session is fully established. Redirect
-    // immediately so they can set a new password.
+    // passwordRecovery before the session is fully established.
     final lastEvent = _authNotifier.lastEvent;
     if (lastEvent == AuthChangeEvent.passwordRecovery) {
       if (loc != AppRoutes.resetPassword) return AppRoutes.resetPassword;
       return null;
     }
 
-    // emailConfirmedAt may lag — also check user metadata as a fallback.
     final isEmailConfirmed = user?.emailConfirmedAt != null ||
         user?.userMetadata?['email_verified'] == true;
+
+    // Check if onboarding has been completed (stored in user metadata).
+    final hasCompletedOnboarding =
+        user?.userMetadata?['onboarding_completed'] == true;
 
     final isOnSplash = loc == AppRoutes.splash;
     final isOnAuth = loc == AppRoutes.login ||
         loc == AppRoutes.register ||
         loc == AppRoutes.emailVerification;
+    final isOnOnboarding = loc == AppRoutes.onboarding;
 
     // Let the splash handle its own redirect logic.
     if (isOnSplash) return null;
@@ -149,9 +160,17 @@ class AppRouter {
           '?email=${Uri.encodeComponent(user.email ?? '')}';
     }
 
-    // Logged in and confirmed → don't linger on auth screens.
-    if (isLoggedIn && isEmailConfirmed && isOnAuth) {
-      return AppRoutes.home;
+    // Logged in, confirmed, but onboarding not done → send to onboarding.
+    if (isLoggedIn &&
+        isEmailConfirmed &&
+        !hasCompletedOnboarding &&
+        !isOnOnboarding) {
+      return AppRoutes.onboarding;
+    }
+
+    // Logged in and confirmed → don't linger on auth screens or onboarding.
+    if (isLoggedIn && isEmailConfirmed && hasCompletedOnboarding) {
+      if (isOnAuth || isOnOnboarding) return AppRoutes.home;
     }
 
     return null;
@@ -247,6 +266,8 @@ class _SplashScreenState extends State<_SplashScreen> {
         '${AppRoutes.emailVerification}'
         '?email=${Uri.encodeComponent(user.email ?? '')}',
       );
+    } else if (user.userMetadata?['onboarding_completed'] != true) {
+      context.go(AppRoutes.onboarding);
     } else {
       context.go(AppRoutes.home);
     }
