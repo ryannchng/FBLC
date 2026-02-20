@@ -40,6 +40,30 @@ class AuthRepository {
     }
   }
 
+  // ─── Anonymous sign in ────────────────────────────────────────────────────
+
+  /// Creates a temporary anonymous session. The user can later convert it
+  /// to a full account by linking an email/password via [linkEmail].
+  Future<sb.AuthResponse> signInAnonymously() async {
+    try {
+      final response =
+          await SupabaseClientProvider.auth.signInAnonymously();
+      if (response.user == null) {
+        throw const AppAuthException('Could not start a guest session. Please try again.');
+      }
+      return response;
+    } on sb.AuthException catch (e, st) {
+      dev.log('Supabase AuthException (anon): ${e.message}',
+          error: e, stackTrace: st);
+      throw AppAuthException(_mapAuthError(e.message));
+    } catch (e, st) {
+      if (e is AppAuthException) rethrow;
+      dev.log('Unexpected anon sign-in error: $e', error: e, stackTrace: st);
+      throw AppAuthException(
+          'An unexpected error occurred ($e). Please try again.');
+    }
+  }
+
   // ─── Register ─────────────────────────────────────────────────────────────
 
   Future<sb.AuthResponse> registerWithEmail({

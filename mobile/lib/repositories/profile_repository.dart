@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'dart:io';
+import 'dart:math';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -86,6 +87,51 @@ class ProfileRepository {
     };
 
     await SupabaseClientProvider.client.from('users').upsert(updates);
+  }
+
+  /// Creates a minimal profile for anonymous users with a generated
+  /// `guest0000001` style username and marks onboarding complete.
+  Future<void> createGuestProfile() async {
+    const prefix = 'guest';
+    const width = 7;
+    const maxAttempts = 20;
+
+    final existingProfile = await getProfile();
+    final existingUsername = existingProfile?.username?.trim();
+    if (existingUsername != null && existingUsername.isNotEmpty) {
+      await completeOnboarding();
+      return;
+    }
+
+    final random = Random.secure();
+    final start = random.nextInt(10000000);
+
+    for (var i = 0; i < maxAttempts; i++) {
+      final candidate = (start + i) % 10000000;
+      final guestNumber = candidate == 0 ? 1 : candidate;
+      final username = '$prefix${guestNumber.toString().padLeft(width, '0')}';
+      try {
+        await saveProfile(username: username);
+        await completeOnboarding();
+        return;
+      } catch (e, st) {
+        if (_isUsernameConflict(e)) {
+          dev.log('Guest username conflict for $username, retrying...',
+              stackTrace: st);
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    throw Exception('Could not create a guest profile. Please try again.');
+  }
+
+  bool _isUsernameConflict(Object error) {
+    if (error is! PostgrestException) return false;
+    final msg = '${error.message} ${error.details ?? ''}'.toLowerCase();
+    return msg.contains('username') &&
+        (msg.contains('duplicate') || msg.contains('unique'));
   }
 
   // ── Complete onboarding ───────────────────────────────────────────────────

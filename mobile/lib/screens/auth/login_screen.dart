@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _authRepo = AuthRepository();
 
   bool _isLoading = false;
+  bool _isGuestLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
 
@@ -62,6 +63,8 @@ class _LoginScreenState extends State<LoginScreen>
   // -------------------------------------------------------------------------
   // Actions
   // -------------------------------------------------------------------------
+  bool get _anyLoading => _isLoading || _isGuestLoading;
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -76,10 +79,25 @@ class _LoginScreenState extends State<LoginScreen>
         password: _passwordController.text,
       );
       if (mounted) context.go(AppRoutes.home);
-    } on AppAuthException catch (e) {  // ← AppAuthException, not AuthException
+    } on AppAuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _continueAsGuest() async {
+    setState(() {
+      _isGuestLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await _authRepo.signInAnonymously();
+      if (mounted) context.go(AppRoutes.home);
+    } on AppAuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isGuestLoading = false);
     }
   }
 
@@ -132,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           );
         }
-      } on AppAuthException catch (e) {  // ← AppAuthException
+      } on AppAuthException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -192,8 +210,13 @@ class _LoginScreenState extends State<LoginScreen>
                       _buildSubmitButton(colorScheme),
                       const SizedBox(height: 16),
                       _buildForgotPassword(colorScheme),
-                      const SizedBox(height: 40),
-                      _buildDivider(colorScheme),
+                      const SizedBox(height: 32),
+                      _buildDivider(colorScheme, label: 'or'),
+                      const SizedBox(height: 24),
+                      _buildGuestButton(colorScheme),
+                      const SizedBox(height: 32),
+                      _buildDivider(colorScheme,
+                          label: "Don't have an account?"),
                       const SizedBox(height: 24),
                       _buildRegisterCta(colorScheme),
                     ],
@@ -261,6 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.email],
             validator: _validateEmail,
+            enabled: !_anyLoading,
             onChanged: (_) {
               if (_errorMessage != null) setState(() => _errorMessage = null);
             },
@@ -279,6 +303,7 @@ class _LoginScreenState extends State<LoginScreen>
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
             validator: _validatePassword,
+            enabled: !_anyLoading,
             onFieldSubmitted: (_) => _submit(),
             onChanged: (_) {
               if (_errorMessage != null) setState(() => _errorMessage = null);
@@ -292,8 +317,10 @@ class _LoginScreenState extends State<LoginScreen>
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
                 ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: _anyLoading
+                    ? null
+                    : () => setState(
+                        () => _obscurePassword = !_obscurePassword),
                 tooltip: _obscurePassword ? 'Show password' : 'Hide password',
               ),
             ),
@@ -305,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildSubmitButton(ColorScheme colorScheme) {
     return FilledButton(
-      onPressed: _isLoading ? null : _submit,
+      onPressed: _anyLoading ? null : _submit,
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -326,20 +353,46 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildForgotPassword(ColorScheme colorScheme) {
     return Center(
       child: TextButton(
-        onPressed: _isLoading ? null : _showForgotPassword,
+        onPressed: _anyLoading ? null : _showForgotPassword,
         child: const Text('Forgot your password?'),
       ),
     );
   }
 
-  Widget _buildDivider(ColorScheme colorScheme) {
+  Widget _buildGuestButton(ColorScheme colorScheme) {
+    return OutlinedButton.icon(
+      onPressed: _anyLoading ? null : _continueAsGuest,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        side: BorderSide(color: colorScheme.outline.withAlpha(128)),
+      ),
+      icon: _isGuestLoading
+          ? SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colorScheme.onSurface.withAlpha(153),
+              ),
+            )
+          : Icon(Icons.person_outline_rounded,
+              color: colorScheme.onSurface.withAlpha(178)),
+      label: Text(
+        'Continue as guest',
+        style: TextStyle(color: colorScheme.onSurface.withAlpha(178)),
+      ),
+    );
+  }
+
+  Widget _buildDivider(ColorScheme colorScheme, {required String label}) {
     return Row(
       children: [
         Expanded(child: Divider(color: colorScheme.outline.withAlpha(102))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            "Don't have an account?",
+            label,
             style: TextStyle(
               fontSize: 13,
               color: colorScheme.onSurface.withAlpha(128),
@@ -353,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildRegisterCta(ColorScheme colorScheme) {
     return OutlinedButton(
-      onPressed: () => context.go(AppRoutes.register),
+      onPressed: _anyLoading ? null : () => context.go(AppRoutes.register),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

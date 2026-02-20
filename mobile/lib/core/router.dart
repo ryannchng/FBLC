@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/services/auth_state_notifier.dart';
+import 'package:mobile/models/business_model.dart';
 import 'package:mobile/screens/auth/email_verification_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
 import 'package:mobile/screens/auth/reset_password_screen.dart';
 import 'package:mobile/screens/home/home_screen.dart';
+import 'package:mobile/screens/owner/owner_dashboard_screen.dart';
+import 'package:mobile/screens/owner/owner_business_detail_screen.dart';
+import 'package:mobile/screens/owner/owner_business_form_screen.dart';
+import 'package:mobile/screens/profile/profile_screen.dart';
 import 'package:mobile/screens/onboarding/onboarding_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_client.dart';
@@ -25,6 +30,11 @@ abstract class AppRoutes {
   static const businessDetail = '/businesses/:id';
   static const writeReview = '/businesses/:id/review';
   static const profile = '/profile';
+
+  // Owner portal
+  static const ownerDashboard = '/owner';
+  static const ownerBusinessForm = '/owner/businesses/new';
+  static const ownerBusinessDetail = '/owner/businesses/:id';
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +81,26 @@ class AppRouter {
         builder: (context, state) => const ResetPasswordScreen(),
       ),
 
+      // ── Owner portal (outside shell — no bottom nav) ──────────────────────
+      GoRoute(
+        path: AppRoutes.ownerDashboard,
+        builder: (context, state) => const OwnerDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerBusinessForm,
+        builder: (context, state) {
+          final business = state.extra as Business?;
+          return OwnerBusinessFormScreen(business: business);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.ownerBusinessDetail,
+        builder: (context, state) {
+          final businessId = state.pathParameters['id']!;
+          return OwnerBusinessDetailScreen(businessId: businessId);
+        },
+      ),
+
       // ── Onboarding ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.onboarding,
@@ -110,7 +140,7 @@ class AppRouter {
           GoRoute(
             path: AppRoutes.profile,
             builder: (context, state) =>
-                const _PlaceholderScreen(label: 'Profile'),
+                const ProfileScreen(),
           ),
         ],
       ),
@@ -136,6 +166,9 @@ class AppRouter {
     final isEmailConfirmed = user?.emailConfirmedAt != null ||
         user?.userMetadata?['email_verified'] == true;
 
+    // Anonymous users have no email to verify — treat them as confirmed.
+    final isAnonymous = user?.isAnonymous ?? false;
+
     // Check if onboarding has been completed (stored in user metadata).
     final hasCompletedOnboarding =
         user?.userMetadata?['onboarding_completed'] == true;
@@ -152,8 +185,14 @@ class AppRouter {
     // Not logged in → send to login (unless already on an auth screen).
     if (!isLoggedIn && !isOnAuth) return AppRoutes.login;
 
+    if (isLoggedIn && isAnonymous && (isOnAuth || isOnOnboarding)) {
+      return AppRoutes.home;
+    }
+
     // Logged in but email not confirmed → send to verification screen.
+    // Anonymous sessions bypass this check — they have no email to confirm.
     if (isLoggedIn &&
+        !isAnonymous &&
         !isEmailConfirmed &&
         loc != AppRoutes.emailVerification) {
       return '${AppRoutes.emailVerification}'
@@ -162,14 +201,15 @@ class AppRouter {
 
     // Logged in, confirmed, but onboarding not done → send to onboarding.
     if (isLoggedIn &&
+        !isAnonymous &&
         isEmailConfirmed &&
         !hasCompletedOnboarding &&
         !isOnOnboarding) {
       return AppRoutes.onboarding;
     }
 
-    // Logged in and confirmed → don't linger on auth screens or onboarding.
-    if (isLoggedIn && isEmailConfirmed && hasCompletedOnboarding) {
+    // Logged in and confirmed (or anonymous) → don't linger on auth screens or onboarding.
+    if (isLoggedIn && (isEmailConfirmed || isAnonymous) && hasCompletedOnboarding) {
       if (isOnAuth || isOnOnboarding) return AppRoutes.home;
     }
 
@@ -261,6 +301,8 @@ class _SplashScreenState extends State<_SplashScreen> {
     final user = SupabaseClientProvider.currentUser;
     if (user == null) {
       context.go(AppRoutes.login);
+    } else if (user.isAnonymous) {
+      context.go(AppRoutes.home);
     } else if (user.emailConfirmedAt == null) {
       context.go(
         '${AppRoutes.emailVerification}'
