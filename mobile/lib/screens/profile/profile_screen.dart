@@ -235,6 +235,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => context.push(AppRoutes.myReviews),
                   ),
                   _SettingsTile(
+                    icon: Icons.campaign_outlined,
+                    iconColor: const Color(0xFFF59E0B),
+                    title: 'My Requests',
+                    subtitle: 'Track requests you posted to businesses',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push(AppRoutes.myRequests),
+                  ),
+                  _SettingsTile(
                     icon: Icons.bookmark_outline_rounded,
                     iconColor: const Color(0xFF10B981),
                     title: 'Saved Places',

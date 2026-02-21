@@ -12,6 +12,7 @@ class BusinessRequest {
     this.neededBy,
     this.claimedBy,
     this.requesterUsername,
+    this.businessName,
   });
 
   final String id;
@@ -24,12 +25,14 @@ class BusinessRequest {
   final DateTime? neededBy;
   final String? claimedBy;
   final String? requesterUsername;
+  final String? businessName;
 
   bool get isOpen => status == 'open';
   bool get isClaimed => status == 'claimed';
   bool get isCompleted => status == 'completed';
 
   factory BusinessRequest.fromJson(Map<String, dynamic> json) {
+    final business = json['businesses'] as Map<String, dynamic>?;
     return BusinessRequest(
       id: json['id'] as String,
       businessId: json['business_id'] as String,
@@ -43,6 +46,7 @@ class BusinessRequest {
           : null,
       claimedBy: json['claimed_by'] as String?,
       requesterUsername: json['requester_username'] as String?,
+      businessName: business?['name'] as String?,
     );
   }
 }
@@ -106,6 +110,21 @@ class BusinessRequestRepository {
     } catch (_) {
       return requests;
     }
+  }
+
+  Future<List<BusinessRequest>> getMyRequests() async {
+    final userId = SupabaseClientProvider.currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await SupabaseClientProvider.client
+        .from('business_requests')
+        .select('*, businesses(name)')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    return (data as List)
+        .map((e) => BusinessRequest.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// Returns the total number of open requests across a list of business IDs.

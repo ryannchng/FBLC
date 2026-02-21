@@ -4,6 +4,7 @@ import 'package:mobile/core/services/auth_state_notifier.dart';
 import 'package:mobile/models/business_model.dart';
 import 'package:mobile/models/user_profile_model.dart';
 import 'package:mobile/screens/profile/edit_profile_screen.dart';
+import 'package:mobile/screens/profile/my_requests_screen.dart';
 import 'package:mobile/screens/profile/my_reviews_screen.dart';
 import 'package:mobile/screens/profile/saved_screen.dart';
 import 'package:mobile/screens/profile/notification_prefs_screen.dart';
@@ -44,6 +45,7 @@ abstract class AppRoutes {
   // Profile sub-routes
   static const editProfile        = '/profile/edit';
   static const myReviews          = '/profile/reviews';
+  static const myRequests         = '/profile/requests';
   static const saved              = '/profile/saved';
   static const notificationPrefs  = '/profile/notifications';
 
@@ -180,6 +182,10 @@ class AppRouter {
               GoRoute(
                 path: 'reviews',
                 builder: (context, state) => const MyReviewsScreen(),
+              ),
+              GoRoute(
+                path: 'requests',
+                builder: (context, state) => const MyRequestsScreen(),
               ),
               GoRoute(
                 path: 'saved',
