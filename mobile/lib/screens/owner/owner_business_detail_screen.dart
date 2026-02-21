@@ -77,22 +77,35 @@ class _OwnerBusinessDetailScreenState
   Future<void> _deleteBusiness() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete listing?'),
-        content: const Text(
-            'This will permanently delete your business listing and all associated data. This cannot be undone.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error),
-            child: const Text('Delete'),
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: const Text('Delete listing?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                  'This will permanently delete your business listing and all associated data. This cannot be undone.'),
+              const SizedBox(height: 18),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
+                  side: BorderSide.none,
+                ),
+                child: const Text('Delete'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
     if (confirmed != true) return;
     try {

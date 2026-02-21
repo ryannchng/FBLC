@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/services/auth_state_notifier.dart';
 import 'package:mobile/models/business_model.dart';
+import 'package:mobile/models/user_profile_model.dart';
+import 'package:mobile/screens/profile/edit_profile_screen.dart';
+import 'package:mobile/screens/profile/my_reviews_screen.dart';
+import 'package:mobile/screens/profile/saved_screen.dart';
+import 'package:mobile/screens/profile/notification_prefs_screen.dart';
 import 'package:mobile/screens/auth/email_verification_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
@@ -31,6 +36,12 @@ abstract class AppRoutes {
   static const businessDetail = '/businesses/:id';
   static const writeReview = '/businesses/:id/review';
   static const profile = '/profile';
+
+  // Profile sub-routes
+  static const editProfile        = '/profile/edit';
+  static const myReviews          = '/profile/reviews';
+  static const saved              = '/profile/saved';
+  static const notificationPrefs  = '/profile/notifications';
 
   // Owner portal
   static const ownerDashboard = '/owner';
@@ -140,6 +151,31 @@ class AppRouter {
             path: AppRoutes.profile,
             builder: (context, state) =>
                 const ProfileScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (context, state) => const ProfileScreen(),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) {
+                  final profile = state.extra as UserProfile;
+                  return EditProfileScreen(profile: profile);
+                },
+              ),
+              GoRoute(
+                path: 'reviews',
+                builder: (context, state) => const MyReviewsScreen(),
+              ),
+              GoRoute(
+                path: 'saved',
+                builder: (context, state) => const SavedScreen(),
+              ),
+              GoRoute(
+                path: 'notifications',
+                builder: (context, state) => const NotificationPrefsScreen(),
+              ),
+            ],
           ),
         ],
       ),
