@@ -17,7 +17,6 @@ class WriteReviewScreen extends StatefulWidget {
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
   final _contentController = TextEditingController();
   int _rating = 0;
-  bool _isVerifiedVisit = false;
   bool _submitting = false;
   bool get _isGuest => SupabaseClientProvider.currentUser?.isAnonymous ?? false;
 
@@ -58,7 +57,6 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
         content: _contentController.text.trim().isEmpty
             ? null
             : _contentController.text.trim(),
-        isVerifiedVisit: _isVerifiedVisit,
       );
 
       if (!mounted) return;
@@ -117,27 +115,6 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Write a Review'),
-        actions: [
-          if (_submitting)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: _isGuest ? null : _submit,
-              child: const Text(
-                'Submit',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
@@ -240,47 +217,6 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
               counterStyle: TextStyle(
                 color: colorScheme.onSurface.withAlpha(102),
                 fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Verified visit toggle ────────────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outline.withAlpha(38)),
-            ),
-            child: SwitchListTile(
-              value: _isVerifiedVisit,
-              onChanged: (v) => setState(() => _isVerifiedVisit = v),
-              title: const Text(
-                'I visited this business in person',
-                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500),
-              ),
-              subtitle: Text(
-                'Marks your review as a verified visit',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: colorScheme.onSurface.withAlpha(115),
-                ),
-              ),
-              secondary: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withAlpha(26),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.storefront_rounded,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
@@ -399,3 +335,4 @@ class _GuidelineItem extends StatelessWidget {
     );
   }
 }
+
