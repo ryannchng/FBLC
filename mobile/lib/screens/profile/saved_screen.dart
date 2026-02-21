@@ -54,6 +54,7 @@ class _SavedScreenState extends State<SavedScreen> {
           SnackBar(
             content: Text('"${business.name}" removed from saved.'),
             behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
             action: SnackBarAction(
               label: 'Undo',
               onPressed: () async {

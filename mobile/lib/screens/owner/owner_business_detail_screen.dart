@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router.dart';
 import '../../models/business_model.dart';
+import '../../repositories/business_request_repository.dart';
 import '../../repositories/owner_repository.dart';
 
 class OwnerBusinessDetailScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _OwnerBusinessDetailScreenState
 
   Business? _business;
   List<ReviewSummary> _reviews = [];
+  List<BusinessRequest> _requests = [];
   RatingDistribution? _distribution;
   bool _loading = true;
   String? _error;
@@ -30,7 +32,7 @@ class _OwnerBusinessDetailScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _load();
   }
 
@@ -50,12 +52,14 @@ class _OwnerBusinessDetailScreenState
         _repo.getBusinessById(widget.businessId),
         _repo.getReviews(widget.businessId),
         _repo.getRatingDistribution(widget.businessId),
+        BusinessRequestRepository().getRequestsForBusiness(widget.businessId),
       ]);
       if (!mounted) return;
       setState(() {
         _business = results[0] as Business?;
         _reviews = results[1] as List<ReviewSummary>;
         _distribution = results[2] as RatingDistribution;
+        _requests = results[3] as List<BusinessRequest>;
         _loading = false;
       });
     } catch (e) {
@@ -120,6 +124,29 @@ class _OwnerBusinessDetailScreenState
     }
   }
 
+  Future<void> _takeRequest(BusinessRequest request) async {
+    try {
+      await BusinessRequestRepository().takeRequest(request.id);
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Request claimed.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not claim request.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -159,6 +186,7 @@ class _OwnerBusinessDetailScreenState
                 tabs: const [
                   Tab(text: 'Analytics'),
                   Tab(text: 'Reviews'),
+                  Tab(text: 'Requests'),
                   Tab(text: 'Details'),
                 ],
               ),
@@ -170,6 +198,10 @@ class _OwnerBusinessDetailScreenState
           children: [
             _AnalyticsTab(business: b, distribution: _distribution),
             _ReviewsTab(reviews: _reviews),
+            _RequestsTab(
+              requests: _requests,
+              onTakeRequest: _takeRequest,
+            ),
             _DetailsTab(business: b),
           ],
         ),
@@ -461,6 +493,132 @@ class _ReviewsTab extends StatelessWidget {
       itemCount: reviews.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, i) => _ReviewCard(review: reviews[i]),
+    );
+  }
+}
+
+class _RequestsTab extends StatelessWidget {
+  const _RequestsTab({
+    required this.requests,
+    required this.onTakeRequest,
+  });
+
+  final List<BusinessRequest> requests;
+  final ValueChanged<BusinessRequest> onTakeRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (requests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.campaign_outlined,
+                size: 48, color: colorScheme.onSurface.withAlpha(51)),
+            const SizedBox(height: 12),
+            Text(
+              'No requests yet',
+              style: TextStyle(
+                fontSize: 15,
+                color: colorScheme.onSurface.withAlpha(128),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: requests.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, i) {
+        final request = requests[i];
+        final isOpen = request.isOpen;
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colorScheme.outline.withAlpha(38)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      request.requesterUsername ?? 'Customer',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isOpen
+                          ? colorScheme.primaryContainer
+                          : colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isOpen ? 'Open' : request.status,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isOpen
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                request.requestText,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  height: 1.45,
+                  color: colorScheme.onSurface.withAlpha(204),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (request.maxBudget != null)
+                    _Badge(
+                      label: 'Budget: \$${request.maxBudget!.toStringAsFixed(0)}',
+                      color: colorScheme.primary,
+                      icon: Icons.attach_money_rounded,
+                    ),
+                  if (request.neededBy != null)
+                    _Badge(
+                      label:
+                          'Need by ${request.neededBy!.month}/${request.neededBy!.day}/${request.neededBy!.year}',
+                      color: colorScheme.tertiary,
+                      icon: Icons.event_rounded,
+                    ),
+                ],
+              ),
+              if (isOpen) ...[
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => onTakeRequest(request),
+                  child: const Text('Take request'),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

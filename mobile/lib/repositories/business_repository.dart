@@ -152,6 +152,19 @@ class BusinessRepository {
   }
 
   // -------------------------------------------------------------------------
+  // Business hours
+  // -------------------------------------------------------------------------
+
+  Future<List<Map<String, dynamic>>> getBusinessHours(String businessId) async {
+    final data = await SupabaseClientProvider.client
+        .from('business_hours')
+        .select()
+        .eq('business_id', businessId)
+        .order('day_of_week');
+    return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
 

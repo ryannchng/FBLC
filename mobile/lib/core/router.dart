@@ -12,6 +12,8 @@ import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
 import 'package:mobile/screens/auth/reset_password_screen.dart';
 import 'package:mobile/screens/home/home_screen.dart';
+import 'package:mobile/screens/business/business_detail_screen.dart';
+import 'package:mobile/screens/business/write_request_screen.dart';
 import 'package:mobile/screens/owner/owner_dashboard_screen.dart';
 import 'package:mobile/screens/owner/owner_business_detail_screen.dart';
 import 'package:mobile/screens/owner/owner_business_form_screen.dart';
@@ -35,6 +37,7 @@ abstract class AppRoutes {
   static const businessList = '/businesses';
   static const businessDetail = '/businesses/:id';
   static const writeReview = '/businesses/:id/review';
+  static const writeRequest = '/businesses/:id/request';
   static const profile = '/profile';
 
   // Profile sub-routes
@@ -133,15 +136,23 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: ':id',
-                builder: (context, state) => _PlaceholderScreen(
-                  label: 'Business ${state.pathParameters['id']}',
-                ),
+                builder: (context, state) {
+                  final businessId = state.pathParameters['id']!;
+                  return BusinessDetailScreen(businessId: businessId);
+                },
                 routes: [
                   GoRoute(
                     path: 'review',
                     builder: (context, state) => _PlaceholderScreen(
                       label: 'Write Review for ${state.pathParameters['id']}',
                     ),
+                  ),
+                  GoRoute(
+                    path: 'request',
+                    builder: (context, state) {
+                      final businessId = state.pathParameters['id']!;
+                      return WriteRequestScreen(businessId: businessId);
+                    },
                   ),
                 ],
               ),
